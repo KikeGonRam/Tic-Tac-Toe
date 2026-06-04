@@ -16,6 +16,18 @@ import {
 
 export type PlayerRole = 'player1' | 'player2' | null;
 
+function normalizeBoard(raw: any): Board {
+  const board: Board = Array(9).fill(null);
+  if (!raw) return board;
+  if (Array.isArray(raw)) return raw.length === 9 ? raw : board;
+  // Firebase stores sparse arrays as objects with integer keys e.g. {"4": "O"}
+  Object.entries(raw).forEach(([key, value]) => {
+    const idx = parseInt(key);
+    if (idx >= 0 && idx < 9) board[idx] = value as CellValue;
+  });
+  return board;
+}
+
 interface UseMultiplayerGameReturn {
   gameState: GameState | null;
   myRole: PlayerRole;
@@ -72,7 +84,7 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
         return;
       }
       const state: GameState = snapshot.val();
-      if (state.players.player2 !== null) {
+      if (state.players?.player2) {
         setError('La sala ya está llena.');
         return;
       }
@@ -97,12 +109,9 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
     const listener = onValue(roomRef, (snapshot) => {
       if (snapshot.exists()) {
         const raw = snapshot.val();
-        // Firebase may deserialize arrays as objects — normalize back to array
         const state: GameState = {
           ...raw,
-          board: Array.isArray(raw.board)
-            ? raw.board
-            : Object.values(raw.board ?? {}),
+          board: normalizeBoard(raw.board),
         };
         setGameState(state);
         setIsConnected(true);

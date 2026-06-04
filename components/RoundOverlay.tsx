@@ -1,14 +1,9 @@
-// components/RoundOverlay.tsx
 import React, { useEffect, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  TouchableOpacity,
-  Modal,
+  View, Text, StyleSheet, Animated,
+  TouchableOpacity, Modal, useWindowDimensions,
 } from 'react-native';
-import { COLORS } from '../utils/theme';
+import { COLORS, rs, hs } from '../utils/theme';
 import { GameState } from '../utils/gameLogic';
 
 interface RoundOverlayProps {
@@ -16,10 +11,11 @@ interface RoundOverlayProps {
   myRole: 'player1' | 'player2';
   onNextRound: () => void;
   onReset: () => void;
-  canAdvance: boolean; // only player1 can advance rounds
+  canAdvance: boolean;
 }
 
 export default function RoundOverlay({ gameState, myRole, onNextRound, onReset, canAdvance }: RoundOverlayProps) {
+  const { width } = useWindowDimensions();
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
@@ -31,20 +27,10 @@ export default function RoundOverlay({ gameState, myRole, onNextRound, onReset, 
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 60,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
+      Animated.spring(scaleAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
     ]).start();
 
-    // Glow pulse for winner
     if (!isDraw) {
       Animated.loop(
         Animated.sequence([
@@ -72,6 +58,7 @@ export default function RoundOverlay({ gameState, myRole, onNextRound, onReset, 
 
   const titleColor = isDraw ? COLORS.gold : iWon ? COLORS.cyan : COLORS.orange;
   const glowColor = isDraw ? COLORS.gold : iWon ? COLORS.cyan : COLORS.orange;
+  const cardWidth = Math.min(width - rs(40), 320);
 
   return (
     <Modal transparent animationType="none" visible>
@@ -79,48 +66,37 @@ export default function RoundOverlay({ gameState, myRole, onNextRound, onReset, 
         <Animated.View
           style={[
             styles.card,
-            { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
+            { width: cardWidth, transform: [{ scale: scaleAnim }], opacity: opacityAnim },
             { borderColor: glowColor, shadowColor: glowColor },
           ]}
         >
-          {/* Decorative top bar */}
           <View style={[styles.topBar, { backgroundColor: glowColor }]} />
 
-          {/* Icon */}
-          <View style={[styles.iconRing, { borderColor: glowColor }]}>
-            <Text style={[styles.iconText, { color: glowColor }]}>
+          <View style={[styles.iconRing, { borderColor: glowColor, width: rs(64), height: rs(64), borderRadius: rs(32) }]}>
+            <Text style={[styles.iconText, { color: glowColor, fontSize: rs(30) }]}>
               {isDraw ? '⊘' : iWon ? '★' : isGameOver ? '☆' : winner === 'player1' ? '○' : '✕'}
             </Text>
           </View>
 
-          {/* Title */}
-          <Text style={[styles.title, { color: titleColor }]}>{getTitle()}</Text>
+          <Text style={[styles.title, { color: titleColor, fontSize: rs(24) }]}>{getTitle()}</Text>
           <Text style={styles.subtitle}>{getSubtitle()}</Text>
 
-          {/* Score summary */}
           <View style={styles.scoreRow}>
             <View style={[styles.scorePill, { borderColor: COLORS.cyanDim }]}>
               <Text style={styles.scoreSymbol}>○</Text>
-              <Text style={[styles.scorePillNum, { color: COLORS.cyan }]}>
-                {gameState.scores.player1}
-              </Text>
+              <Text style={[styles.scorePillNum, { color: COLORS.cyan }]}>{gameState.scores.player1}</Text>
             </View>
             <Text style={styles.scoreDash}>—</Text>
             <View style={[styles.scorePill, { borderColor: COLORS.orangeDim }]}>
-              <Text style={[styles.scorePillNum, { color: COLORS.orange }]}>
-                {gameState.scores.player2}
-              </Text>
+              <Text style={[styles.scorePillNum, { color: COLORS.orange }]}>{gameState.scores.player2}</Text>
               <Text style={styles.scoreSymbol}>✕</Text>
             </View>
           </View>
 
-          {/* Buttons */}
           {!isGameOver && (
             canAdvance ? (
               <TouchableOpacity style={[styles.btn, styles.btnPrimary]} onPress={onNextRound}>
-                <Text style={styles.btnTextPrimary}>
-                  RONDA {gameState.round + 1} →
-                </Text>
+                <Text style={styles.btnTextPrimary}>RONDA {gameState.round + 1} →</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.waitingBox}>
@@ -130,17 +106,15 @@ export default function RoundOverlay({ gameState, myRole, onNextRound, onReset, 
           )}
 
           {isGameOver && (
-            <>
-              {canAdvance ? (
-                <TouchableOpacity style={[styles.btn, styles.btnGold]} onPress={onReset}>
-                  <Text style={styles.btnTextGold}>↺ JUGAR DE NUEVO</Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.waitingBox}>
-                  <Text style={styles.waitingText}>⏳ Esperando decisión del rival...</Text>
-                </View>
-              )}
-            </>
+            canAdvance ? (
+              <TouchableOpacity style={[styles.btn, styles.btnGold]} onPress={onReset}>
+                <Text style={styles.btnTextGold}>↺ JUGAR DE NUEVO</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.waitingBox}>
+                <Text style={styles.waitingText}>⏳ Esperando decisión del rival...</Text>
+              </View>
+            )
           )}
         </Animated.View>
       </View>
@@ -154,15 +128,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(5,10,30,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: rs(20),
   },
   card: {
-    width: '100%',
-    maxWidth: 320,
     backgroundColor: '#080F2A',
     borderRadius: 24,
     borderWidth: 1.5,
-    padding: 28,
+    padding: rs(22),
     alignItems: 'center',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
@@ -178,66 +150,52 @@ const styles = StyleSheet.create({
     height: 3,
   },
   iconRing: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
     borderWidth: 2.5,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: rs(14),
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
   iconText: {
-    fontSize: 34,
     fontWeight: '300',
-    lineHeight: 40,
+    lineHeight: rs(36),
   },
   title: {
-    fontSize: 28,
     fontWeight: '900',
     letterSpacing: 2,
     marginBottom: 6,
     fontFamily: 'Courier New',
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: rs(12),
     color: COLORS.gray,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: rs(16),
     letterSpacing: 0.5,
   },
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 24,
+    gap: rs(10),
+    marginBottom: rs(20),
   },
   scorePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    gap: rs(5),
+    paddingHorizontal: rs(14),
+    paddingVertical: rs(7),
     borderRadius: 20,
     borderWidth: 1.5,
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  scoreSymbol: {
-    fontSize: 14,
-    color: COLORS.gray,
-  },
-  scorePillNum: {
-    fontSize: 24,
-    fontWeight: '900',
-    fontFamily: 'Courier New',
-  },
-  scoreDash: {
-    fontSize: 20,
-    color: COLORS.gray,
-  },
+  scoreSymbol: { fontSize: rs(13), color: COLORS.gray },
+  scorePillNum: { fontSize: rs(22), fontWeight: '900', fontFamily: 'Courier New' },
+  scoreDash: { fontSize: rs(18), color: COLORS.gray },
   btn: {
     width: '100%',
-    paddingVertical: 14,
+    paddingVertical: rs(13),
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -250,12 +208,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
-  btnTextPrimary: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#050A1E',
-    letterSpacing: 2,
-  },
+  btnTextPrimary: { fontSize: rs(14), fontWeight: '900', color: '#050A1E', letterSpacing: 2 },
   btnGold: {
     backgroundColor: COLORS.gold,
     shadowColor: COLORS.gold,
@@ -264,23 +217,14 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
-  btnTextGold: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#050A1E',
-    letterSpacing: 2,
-  },
+  btnTextGold: { fontSize: rs(14), fontWeight: '900', color: '#050A1E', letterSpacing: 2 },
   waitingBox: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: rs(18),
+    paddingVertical: rs(11),
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  waitingText: {
-    color: COLORS.gray,
-    fontSize: 13,
-    letterSpacing: 0.5,
-  },
+  waitingText: { color: COLORS.gray, fontSize: rs(12), letterSpacing: 0.5 },
 });

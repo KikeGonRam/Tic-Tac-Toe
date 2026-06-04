@@ -1,6 +1,5 @@
-// components/Board.tsx
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, useWindowDimensions } from 'react-native';
 import { COLORS } from '../utils/theme';
 import { Board as BoardType } from '../utils/gameLogic';
 
@@ -13,16 +12,21 @@ interface BoardProps {
 }
 
 export default function Board({ board, onCellPress, isMyTurn, winningCombo, disabled }: BoardProps) {
+  const { width, height } = useWindowDimensions();
+  // Board size: smaller of (width - padding) or a portion of height
+  const boardSize = Math.min(width - 40, height * 0.42, 340);
+  const cellSize = boardSize / 3;
+  const circleSize = Math.round(cellSize * 0.64);
+  const xFontSize = Math.round(cellSize * 0.62);
+
   const isWinningCell = (index: number) => winningCombo?.includes(index) ?? false;
 
   return (
-    <View style={styles.boardContainer}>
-      {/* Grid lines decorative */}
+    <View style={[styles.boardContainer, { width: boardSize, height: boardSize }]}>
+      {/* Grid lines */}
       <View style={styles.gridLines}>
-        {/* Vertical lines */}
         <View style={[styles.vLine, { left: '33.33%' }]} />
         <View style={[styles.vLine, { left: '66.66%' }]} />
-        {/* Horizontal lines */}
         <View style={[styles.hLine, { top: '33.33%' }]} />
         <View style={[styles.hLine, { top: '66.66%' }]} />
       </View>
@@ -31,7 +35,7 @@ export default function Board({ board, onCellPress, isMyTurn, winningCombo, disa
       <View style={styles.grid}>
         {board.map((cell, index) => {
           const isWin = isWinningCell(index);
-          const isEmpty = cell === null;
+          const isEmpty = cell === null || cell === undefined;
           const canPress = isEmpty && isMyTurn && !disabled;
 
           return (
@@ -39,9 +43,9 @@ export default function Board({ board, onCellPress, isMyTurn, winningCombo, disa
               key={index}
               style={[
                 styles.cell,
+                { width: cellSize, height: cellSize },
                 isWin && cell === 'O' && styles.cellWinO,
                 isWin && cell === 'X' && styles.cellWinX,
-                canPress && styles.cellHoverable,
               ]}
               onPress={() => canPress && onCellPress(index)}
               activeOpacity={canPress ? 0.7 : 1}
@@ -49,14 +53,20 @@ export default function Board({ board, onCellPress, isMyTurn, winningCombo, disa
             >
               {cell === 'O' && (
                 <View style={[styles.symbolO, isWin && styles.symbolOWin]}>
-                  <View style={styles.circleOuter}>
-                    <View style={styles.circleInner} />
+                  <View style={[
+                    styles.circleOuter,
+                    { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }
+                  ]}>
+                    <View style={[
+                      styles.circleInner,
+                      { width: circleSize * 0.3, height: circleSize * 0.3, borderRadius: circleSize * 0.15 }
+                    ]} />
                   </View>
                 </View>
               )}
               {cell === 'X' && (
                 <View style={[styles.symbolX, isWin && styles.symbolXWin]}>
-                  <Text style={[styles.xText, isWin && styles.xTextWin]}>✕</Text>
+                  <Text style={[styles.xText, { fontSize: xFontSize, lineHeight: xFontSize * 1.15 }, isWin && styles.xTextWin]}>✕</Text>
                 </View>
               )}
               {isEmpty && isMyTurn && !disabled && (
@@ -72,12 +82,8 @@ export default function Board({ board, onCellPress, isMyTurn, winningCombo, disa
 
 const styles = StyleSheet.create({
   boardContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    maxWidth: 340,
-    maxHeight: 340,
-    position: 'relative',
     alignSelf: 'center',
+    position: 'relative',
   },
   gridLines: {
     ...StyleSheet.absoluteFillObject,
@@ -112,8 +118,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   cell: {
-    width: '33.33%',
-    height: '33.33%',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -123,9 +127,6 @@ const styles = StyleSheet.create({
   },
   cellWinX: {
     backgroundColor: 'rgba(255,107,53,0.08)',
-  },
-  cellHoverable: {
-    // subtle press state
   },
   symbolO: {
     alignItems: 'center',
@@ -139,10 +140,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   circleOuter: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 5,
+    borderWidth: 4,
     borderColor: COLORS.cyan,
     alignItems: 'center',
     justifyContent: 'center',
@@ -153,9 +151,6 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   circleInner: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
     backgroundColor: 'rgba(0,212,255,0.15)',
   },
   symbolX: {
@@ -170,10 +165,8 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   xText: {
-    fontSize: 58,
     fontWeight: '900',
     color: COLORS.orange,
-    lineHeight: 70,
     shadowColor: '#FF6B35',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.7,

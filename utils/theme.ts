@@ -1,4 +1,14 @@
-// utils/theme.ts
+import { Dimensions } from 'react-native';
+
+const { width: W, height: H } = Dimensions.get('window');
+const BASE_W = 375;
+const BASE_H = 812;
+
+// Scale relative to iPhone SE/standard width, capped for tablets
+export const rs = (n: number) => Math.round((Math.min(W, 430) / BASE_W) * n);
+export const hs = (n: number) => Math.round((Math.min(H, 900) / BASE_H) * n);
+export const SCREEN = { W, H };
+
 export const COLORS = {
   bg: '#050A1E',
   bgCard: '#0A1230',

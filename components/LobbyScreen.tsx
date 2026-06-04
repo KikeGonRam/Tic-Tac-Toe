@@ -1,4 +1,3 @@
-// components/LobbyScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -11,7 +10,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { COLORS } from '../utils/theme';
+import { COLORS, rs, hs } from '../utils/theme';
 
 interface LobbyScreenProps {
   onCreateRoom: () => Promise<void>;
@@ -25,9 +24,7 @@ export default function LobbyScreen({ onCreateRoom, onJoinRoom, error, isLoading
   const [mode, setMode] = useState<'select' | 'join'>('select');
 
   const handleJoin = () => {
-    if (joinCode.trim().length === 6) {
-      onJoinRoom(joinCode.trim());
-    }
+    if (joinCode.trim().length === 6) onJoinRoom(joinCode.trim());
   };
 
   return (
@@ -61,21 +58,14 @@ export default function LobbyScreen({ onCreateRoom, onJoinRoom, error, isLoading
 
         {/* Decorative grid */}
         <View style={styles.decorGrid}>
-          <View style={styles.decorCell}>
-            <Text style={styles.decorO}>○</Text>
-          </View>
-          <View style={[styles.decorCell, styles.decorCellFilled]}>
-            <Text style={styles.decorX}>✕</Text>
-          </View>
-          <View style={styles.decorCell}>
-            <Text style={styles.decorO}>○</Text>
-          </View>
+          <View style={styles.decorCell}><Text style={styles.decorO}>○</Text></View>
+          <View style={[styles.decorCell, styles.decorCellFilled]}><Text style={styles.decorX}>✕</Text></View>
+          <View style={styles.decorCell}><Text style={styles.decorO}>○</Text></View>
         </View>
 
         {/* Mode selector */}
         {mode === 'select' && (
           <View style={styles.optionsSection}>
-            {/* Create Room */}
             <TouchableOpacity
               style={[styles.optionBtn, styles.optionCreate]}
               onPress={onCreateRoom}
@@ -86,7 +76,7 @@ export default function LobbyScreen({ onCreateRoom, onJoinRoom, error, isLoading
               ) : (
                 <>
                   <Text style={styles.optionIcon}>⊕</Text>
-                  <View>
+                  <View style={styles.optionTextGroup}>
                     <Text style={styles.optionTitle}>CREAR SALA</Text>
                     <Text style={styles.optionDesc}>Genera un código y compártelo</Text>
                   </View>
@@ -94,14 +84,13 @@ export default function LobbyScreen({ onCreateRoom, onJoinRoom, error, isLoading
               )}
             </TouchableOpacity>
 
-            {/* Join Room */}
             <TouchableOpacity
               style={[styles.optionBtn, styles.optionJoin]}
               onPress={() => setMode('join')}
               disabled={isLoading}
             >
               <Text style={styles.optionIconJ}>⊞</Text>
-              <View>
+              <View style={styles.optionTextGroup}>
                 <Text style={[styles.optionTitle, { color: COLORS.orange }]}>UNIRSE A SALA</Text>
                 <Text style={styles.optionDesc}>Ingresa el código del rival</Text>
               </View>
@@ -129,10 +118,7 @@ export default function LobbyScreen({ onCreateRoom, onJoinRoom, error, isLoading
             />
             <Text style={styles.codeHint}>{joinCode.length}/6 caracteres</Text>
             <TouchableOpacity
-              style={[
-                styles.joinBtn,
-                joinCode.length !== 6 && styles.joinBtnDisabled,
-              ]}
+              style={[styles.joinBtn, joinCode.length !== 6 && styles.joinBtnDisabled]}
               onPress={handleJoin}
               disabled={joinCode.length !== 6 || isLoading}
             >
@@ -167,49 +153,49 @@ export default function LobbyScreen({ onCreateRoom, onJoinRoom, error, isLoading
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: rs(24),
+    paddingTop: hs(44),
+    paddingBottom: rs(32),
     alignItems: 'center',
     minHeight: '100%',
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: hs(16),
   },
   badge: {
     backgroundColor: 'rgba(0,212,255,0.08)',
     borderWidth: 1,
     borderColor: 'rgba(0,212,255,0.25)',
-    paddingHorizontal: 12,
+    paddingHorizontal: rs(12),
     paddingVertical: 5,
     borderRadius: 20,
-    marginBottom: 16,
+    marginBottom: hs(12),
   },
   badgeText: {
-    fontSize: 9,
+    fontSize: rs(9),
     fontWeight: '800',
     letterSpacing: 3,
     color: COLORS.cyan,
   },
   mainTitle: {
-    fontSize: 52,
+    fontSize: rs(44),
     fontWeight: '900',
     color: COLORS.white,
-    letterSpacing: 12,
+    letterSpacing: rs(10),
     fontFamily: 'Courier New',
-    lineHeight: 60,
+    lineHeight: rs(52),
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: rs(10),
     marginVertical: 4,
   },
   oSymbol: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: rs(40),
+    height: rs(40),
+    borderRadius: rs(20),
     borderWidth: 3,
     borderColor: COLORS.cyan,
     alignItems: 'center',
@@ -221,18 +207,18 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   oText: {
-    fontSize: 24,
+    fontSize: rs(20),
     color: COLORS.cyan,
     fontWeight: '300',
-    lineHeight: 28,
+    lineHeight: rs(24),
   },
   dashTitle: {
-    fontSize: 28,
+    fontSize: rs(24),
     color: COLORS.gray,
   },
   xSymbol: {
-    width: 44,
-    height: 44,
+    width: rs(40),
+    height: rs(40),
     borderRadius: 10,
     borderWidth: 3,
     borderColor: COLORS.orange,
@@ -245,27 +231,27 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   xText: {
-    fontSize: 22,
+    fontSize: rs(20),
     color: COLORS.orange,
     fontWeight: '900',
   },
   subtitle: {
-    fontSize: 10,
+    fontSize: rs(9),
     fontWeight: '700',
-    letterSpacing: 3,
+    letterSpacing: 2,
     color: COLORS.gray,
-    marginTop: 12,
+    marginTop: rs(10),
     textAlign: 'center',
   },
   decorGrid: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 32,
+    marginBottom: hs(20),
     opacity: 0.4,
   },
   decorCell: {
-    width: 36,
-    height: 36,
+    width: rs(32),
+    height: rs(32),
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(0,212,255,0.2)',
@@ -276,19 +262,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,107,53,0.08)',
     borderColor: 'rgba(255,107,53,0.3)',
   },
-  decorO: { fontSize: 18, color: COLORS.cyan },
-  decorX: { fontSize: 16, color: COLORS.orange, fontWeight: '900' },
+  decorO: { fontSize: rs(16), color: COLORS.cyan },
+  decorX: { fontSize: rs(14), color: COLORS.orange, fontWeight: '900' },
   optionsSection: {
     width: '100%',
-    gap: 14,
-    marginBottom: 24,
+    gap: rs(12),
+    marginBottom: hs(16),
   },
   optionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    gap: rs(14),
+    paddingHorizontal: rs(18),
+    paddingVertical: rs(16),
     borderRadius: 18,
     borderWidth: 1.5,
   },
@@ -311,54 +297,57 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   optionIcon: {
-    fontSize: 28,
+    fontSize: rs(26),
     color: '#050A1E',
     fontWeight: '300',
   },
   optionIconJ: {
-    fontSize: 28,
+    fontSize: rs(26),
     color: COLORS.orange,
     fontWeight: '300',
   },
+  optionTextGroup: {
+    flex: 1,
+  },
   optionTitle: {
-    fontSize: 15,
+    fontSize: rs(13),
     fontWeight: '900',
     color: '#050A1E',
     letterSpacing: 2,
   },
   optionDesc: {
-    fontSize: 11,
+    fontSize: rs(11),
     color: 'rgba(5,10,30,0.6)',
     marginTop: 2,
   },
   joinSection: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: hs(16),
   },
   backBtn: {
     alignSelf: 'flex-start',
-    marginBottom: 20,
+    marginBottom: rs(16),
   },
   backText: {
     color: COLORS.gray,
-    fontSize: 14,
+    fontSize: rs(14),
   },
   joinLabel: {
-    fontSize: 10,
+    fontSize: rs(10),
     fontWeight: '800',
     letterSpacing: 4,
     color: COLORS.orange,
-    marginBottom: 12,
+    marginBottom: rs(12),
   },
   codeInput: {
     width: '100%',
-    height: 64,
+    height: rs(56),
     borderWidth: 2,
     borderColor: COLORS.orange,
     borderRadius: 16,
     textAlign: 'center',
-    fontSize: 32,
+    fontSize: rs(28),
     fontWeight: '900',
     fontFamily: 'Courier New',
     color: COLORS.orange,
@@ -371,14 +360,14 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   codeHint: {
-    fontSize: 11,
+    fontSize: rs(11),
     color: COLORS.gray,
     marginTop: 6,
-    marginBottom: 16,
+    marginBottom: rs(14),
   },
   joinBtn: {
     width: '100%',
-    paddingVertical: 16,
+    paddingVertical: rs(14),
     borderRadius: 14,
     alignItems: 'center',
     backgroundColor: COLORS.orange,
@@ -394,7 +383,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   joinBtnText: {
-    fontSize: 16,
+    fontSize: rs(15),
     fontWeight: '900',
     color: '#050A1E',
     letterSpacing: 3,
@@ -404,14 +393,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,68,102,0.4)',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 20,
+    paddingHorizontal: rs(16),
+    paddingVertical: rs(10),
+    marginBottom: rs(16),
     width: '100%',
   },
   errorText: {
     color: '#FF4466',
-    fontSize: 13,
+    fontSize: rs(13),
     textAlign: 'center',
   },
   rulesBox: {
@@ -420,19 +409,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16,
-    padding: 16,
+    padding: rs(14),
     gap: 6,
   },
   rulesTitle: {
-    fontSize: 10,
+    fontSize: rs(10),
     fontWeight: '800',
     letterSpacing: 3,
     color: COLORS.gold,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   ruleItem: {
-    fontSize: 12,
+    fontSize: rs(11),
     color: COLORS.gray,
-    lineHeight: 18,
+    lineHeight: rs(18),
   },
 });

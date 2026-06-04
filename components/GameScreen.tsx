@@ -1,4 +1,3 @@
-// components/GameScreen.tsx
 import React from 'react';
 import {
   View,
@@ -8,7 +7,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
-import { COLORS } from '../utils/theme';
+import { COLORS, rs, hs } from '../utils/theme';
 import { GameState } from '../utils/gameLogic';
 import Board from './Board';
 import ScoreBoard from './ScoreBoard';
@@ -27,23 +26,13 @@ interface GameScreenProps {
 }
 
 export default function GameScreen({
-  gameState,
-  myRole,
-  isMyTurn,
-  winningCombo,
-  roomCode,
-  onMove,
-  onNextRound,
-  onReset,
-  onLeave,
+  gameState, myRole, isMyTurn, winningCombo, roomCode,
+  onMove, onNextRound, onReset, onLeave,
 }: GameScreenProps) {
   const isOverlay = gameState.phase === 'round_over' || gameState.phase === 'game_over';
   const mySymbol = myRole === 'player1' ? '○' : '✕';
   const myColor = myRole === 'player1' ? COLORS.cyan : COLORS.orange;
-
-  const turnText = isMyTurn
-    ? 'TU TURNO'
-    : `TURNO DEL RIVAL`;
+  const turnText = isMyTurn ? 'TU TURNO' : 'TURNO DEL RIVAL';
   const turnColor = isMyTurn ? myColor : COLORS.gray;
 
   return (
@@ -92,7 +81,6 @@ export default function GameScreen({
         <View style={[styles.decorLine, { backgroundColor: COLORS.orange }]} />
       </View>
 
-      {/* Round/Game Over Overlay */}
       {isOverlay && (
         <RoundOverlay
           gameState={gameState}
@@ -115,20 +103,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingHorizontal: rs(14),
+    paddingTop: hs(8),
+    paddingBottom: hs(4),
   },
   leaveBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: rs(10),
+    paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,68,102,0.4)',
     backgroundColor: 'rgba(255,68,102,0.06)',
   },
   leaveBtnText: {
-    fontSize: 10,
+    fontSize: rs(9),
     fontWeight: '800',
     color: '#FF4466',
     letterSpacing: 1.5,
@@ -136,30 +124,30 @@ const styles = StyleSheet.create({
   roomCodeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    gap: rs(5),
+    paddingHorizontal: rs(12),
+    paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
   roomCodeLabel: {
-    fontSize: 9,
+    fontSize: rs(9),
     fontWeight: '700',
     color: COLORS.gray,
     letterSpacing: 1,
   },
   roomCodeValue: {
-    fontSize: 13,
+    fontSize: rs(12),
     fontWeight: '900',
     fontFamily: 'Courier New',
     color: COLORS.white,
     letterSpacing: 2,
   },
   mySymbolBadge: {
-    width: 36,
-    height: 36,
+    width: rs(34),
+    height: rs(34),
     borderRadius: 10,
     borderWidth: 2,
     alignItems: 'center',
@@ -167,16 +155,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
   mySymbolText: {
-    fontSize: 18,
+    fontSize: rs(16),
     fontWeight: '700',
-    lineHeight: 22,
+    lineHeight: rs(20),
   },
   turnRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 8,
+    paddingVertical: hs(5),
   },
   turnDot: {
     width: 6,
@@ -185,22 +173,22 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   turnText: {
-    fontSize: 11,
+    fontSize: rs(10),
     fontWeight: '800',
     letterSpacing: 3,
   },
   boardWrapper: {
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingHorizontal: rs(20),
+    paddingVertical: hs(4),
   },
   bottomDecor: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 40,
-    paddingBottom: 16,
-    gap: 0,
+    paddingBottom: hs(12),
     justifyContent: 'center',
   },
   decorLine: {
