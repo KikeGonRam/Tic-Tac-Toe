@@ -76,6 +76,52 @@ export function calculateGameWinner(
   return null;
 }
 
+function minimax(board: Board, isMaximizing: boolean, depth = 0): number {
+  const { winner } = checkWinner(board);
+  if (winner === 'X') return 10 - depth;
+  if (winner === 'O') return depth - 10;
+  if (isBoardFull(board)) return 0;
+
+  const available = board.map((c, i) => (c === null ? i : -1)).filter(i => i !== -1);
+
+  if (isMaximizing) {
+    let best = -Infinity;
+    for (const idx of available) {
+      const b = [...board] as Board;
+      b[idx] = 'X';
+      best = Math.max(best, minimax(b, false, depth + 1));
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (const idx of available) {
+      const b = [...board] as Board;
+      b[idx] = 'O';
+      best = Math.min(best, minimax(b, true, depth + 1));
+    }
+    return best;
+  }
+}
+
+export function getAIMove(board: Board, difficulty: 'easy' | 'hard'): number {
+  const available = board.map((c, i) => (c === null ? i : -1)).filter(i => i !== -1);
+  if (available.length === 0) return -1;
+
+  if (difficulty === 'easy') {
+    return available[Math.floor(Math.random() * available.length)];
+  }
+
+  let bestScore = -Infinity;
+  let bestMove = available[0];
+  for (const idx of available) {
+    const b = [...board] as Board;
+    b[idx] = 'X';
+    const score = minimax(b, false);
+    if (score > bestScore) { bestScore = score; bestMove = idx; }
+  }
+  return bestMove;
+}
+
 export function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';

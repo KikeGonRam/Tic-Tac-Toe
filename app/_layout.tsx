@@ -1,19 +1,28 @@
-// app/_layout.tsx
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { ThemeProvider, useTheme } from '../utils/ThemeContext';
 
-export default function RootLayout() {
+function LayoutInner() {
+  const { colors, isDark } = useTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: '#050A1E' }}>
-      <StatusBar style="light" backgroundColor="#050A1E" />
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.bg} />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#050A1E' },
+          contentStyle: { backgroundColor: colors.bg },
           animation: 'fade',
         }}
       />
     </View>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <LayoutInner />
+    </ThemeProvider>
   );
 }

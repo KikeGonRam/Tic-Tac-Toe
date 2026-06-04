@@ -52,7 +52,7 @@ Abre el archivo `utils/firebase.ts` y reemplaza:
 ```typescript
 const firebaseConfig = {
   apiKey: "AIzaSyDEMO_REPLACE_WITH_YOUR_KEY",        // ← Tu apiKey
-  authDomain: "tictactoe-demo.firebaseapp.com",       // ← Tu authDomain  
+  authDomain: "tictactoe-demo.firebaseapp.com",       // ← Tu authDomain
   databaseURL: "https://tictactoe-demo-default-rtdb.firebaseio.com",  // ← Tu databaseURL
   projectId: "tictactoe-demo",                        // ← Tu projectId
   storageBucket: "tictactoe-demo.appspot.com",        // ← Tu storageBucket
@@ -61,7 +61,7 @@ const firebaseConfig = {
 };
 ```
 
-> ⚠️ **IMPORTANTE**: La `databaseURL` debe coincidir con tu región. 
+> ⚠️ **IMPORTANTE**: La `databaseURL` debe coincidir con tu región.
 > Ejemplo: `https://TU-PROYECTO-default-rtdb.firebaseio.com`
 
 ---
@@ -177,10 +177,8 @@ En Firebase Console → Realtime Database → Rules:
 ## 📱 COMPATIBILIDAD
 
 - ✅ iOS 13+
-- ✅ Android 6+  
+- ✅ Android 6+
 - ✅ Expo Go (sin build nativo necesario)
 - ✅ Funciona con hotspot si no hay WiFi compartido
 
 ---
-
-Hecho con ❤️ por KikeGonRam | UTVT IDGS-84

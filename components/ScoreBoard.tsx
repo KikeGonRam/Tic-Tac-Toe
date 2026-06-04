@@ -1,82 +1,87 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, rs, hs } from '../utils/theme';
+import { rs, hs, ThemeColors } from '../utils/theme';
+import { useTheme } from '../utils/ThemeContext';
 import { GameState } from '../utils/gameLogic';
 
 interface ScoreBoardProps {
   gameState: GameState;
   myRole: 'player1' | 'player2';
+  playerName?: string;
+  opponentName?: string;
 }
 
-export default function ScoreBoard({ gameState, myRole }: ScoreBoardProps) {
+export default function ScoreBoard({ gameState, myRole, playerName, opponentName }: ScoreBoardProps) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
   const { scores, round, currentTurn, phase } = gameState;
   const isP1Leading = scores.player1 > scores.player2;
   const isP2Leading = scores.player2 > scores.player1;
   const isTied = scores.player1 === scores.player2;
+  const p1Label = myRole === 'player1' ? (playerName || 'TÚ') : (opponentName || 'RIVAL');
+  const p2Label = myRole === 'player2' ? (playerName || 'TÚ') : (opponentName || 'RIVAL');
 
   return (
-    <View style={styles.container}>
-      <View style={styles.roundBadge}>
-        <Text style={styles.roundLabel}>RONDA</Text>
-        <Text style={styles.roundNumber}>
-          {round}<Text style={styles.roundTotal}>/5</Text>
-        </Text>
+    <View style={s.container}>
+      <View style={s.roundBadge}>
+        <Text style={s.roundLabel}>RONDA</Text>
+        <Text style={s.roundNumber}>{round}<Text style={s.roundTotal}>/5</Text></Text>
       </View>
 
-      <View style={styles.playersRow}>
+      <View style={s.playersRow}>
+        {/* Player 1 */}
         <View style={[
-          styles.playerCard, styles.p1Card,
-          currentTurn === 'player1' && phase === 'playing' && styles.activeCard,
-          myRole === 'player1' && styles.myCard,
+          s.playerCard, s.p1Card,
+          currentTurn === 'player1' && phase === 'playing' && s.activeCardO,
+          myRole === 'player1' && s.myCard,
         ]}>
-          <View style={styles.symbolBadgeO}>
-            <Text style={styles.symbolTextO}>○</Text>
-          </View>
-          <Text style={styles.playerLabel}>{myRole === 'player1' ? 'TÚ' : 'P1'}</Text>
-          <Text style={[styles.scoreText, styles.scoreO]}>{scores.player1}</Text>
+          <View style={s.symbolBadgeO}><Text style={s.symbolTextO}>○</Text></View>
+          <Text style={s.playerLabel} numberOfLines={1}>{p1Label}</Text>
+          <Text style={[s.scoreText, { color: colors.cyan }]}>{scores.player1}</Text>
           {currentTurn === 'player1' && phase === 'playing' && (
-            <View style={styles.turnIndicatorO} />
+            <View style={[s.turnBar, { backgroundColor: colors.cyan }]} />
           )}
         </View>
 
-        <View style={styles.dividerContainer}>
-          <Text style={styles.vsText}>VS</Text>
-          {isTied && <Text style={styles.tieText}>≡</Text>}
-          {isP1Leading && <Text style={styles.leadText}>◀</Text>}
-          {isP2Leading && <Text style={styles.leadTextR}>▶</Text>}
+        <View style={s.divider}>
+          <Text style={s.vsText}>VS</Text>
+          {isTied  && <Text style={[s.leadIcon, { color: colors.gold }]}>≡</Text>}
+          {isP1Leading && <Text style={[s.leadIcon, { color: colors.cyan }]}>◀</Text>}
+          {isP2Leading && <Text style={[s.leadIcon, { color: colors.orange }]}>▶</Text>}
         </View>
 
+        {/* Player 2 */}
         <View style={[
-          styles.playerCard, styles.p2Card,
-          currentTurn === 'player2' && phase === 'playing' && styles.activeCardX,
-          myRole === 'player2' && styles.myCard,
+          s.playerCard, s.p2Card,
+          currentTurn === 'player2' && phase === 'playing' && s.activeCardX,
+          myRole === 'player2' && s.myCard,
         ]}>
-          <View style={styles.symbolBadgeX}>
-            <Text style={styles.symbolTextX}>✕</Text>
-          </View>
-          <Text style={styles.playerLabel}>{myRole === 'player2' ? 'TÚ' : 'P2'}</Text>
-          <Text style={[styles.scoreText, styles.scoreX]}>{scores.player2}</Text>
+          <View style={s.symbolBadgeX}><Text style={s.symbolTextX}>✕</Text></View>
+          <Text style={s.playerLabel} numberOfLines={1}>{p2Label}</Text>
+          <Text style={[s.scoreText, { color: colors.orange }]}>{scores.player2}</Text>
           {currentTurn === 'player2' && phase === 'playing' && (
-            <View style={styles.turnIndicatorX} />
+            <View style={[s.turnBar, { backgroundColor: colors.orange }]} />
           )}
         </View>
       </View>
 
-      <View style={styles.dotsRow}>
-        {Array.from({ length: 5 }).map((_, i) => {
-          const dotRound = i + 1;
-          const isDone = dotRound < round;
-          const isCurrent = dotRound === round;
-          return (
-            <View key={i} style={[styles.dot, isDone && styles.dotDone, isCurrent && styles.dotCurrent]} />
-          );
-        })}
+      <View style={s.dotsRow}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <View
+            key={i}
+            style={[
+              s.dot,
+              i + 1 < round && s.dotDone,
+              i + 1 === round && s.dotCurrent,
+            ]}
+          />
+        ))}
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   container: {
     alignItems: 'center',
     paddingHorizontal: rs(16),
@@ -84,140 +89,65 @@ const styles = StyleSheet.create({
     paddingBottom: hs(4),
   },
   roundBadge: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: hs(8),
-    backgroundColor: 'rgba(255,215,0,0.08)',
-    paddingHorizontal: rs(14),
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.25)',
-    gap: 6,
+    flexDirection: 'row', alignItems: 'baseline', marginBottom: hs(8),
+    backgroundColor: c.goldGlow,
+    paddingHorizontal: rs(14), paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: c.goldDim, gap: 6,
   },
-  roundLabel: {
-    fontSize: rs(9),
-    fontWeight: '700',
-    color: COLORS.gold,
-    letterSpacing: 3,
-  },
-  roundNumber: {
-    fontSize: rs(20),
-    fontWeight: '900',
-    color: COLORS.gold,
-    fontFamily: 'Courier New',
-  },
-  roundTotal: {
-    fontSize: rs(12),
-    color: COLORS.goldDim,
-  },
+  roundLabel: { fontSize: rs(9), fontWeight: '700', color: c.gold, letterSpacing: 3 },
+  roundNumber: { fontSize: rs(20), fontWeight: '900', color: c.gold, fontFamily: 'Courier New' },
+  roundTotal: { fontSize: rs(12), color: c.goldDim },
   playersRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: rs(10),
-    width: '100%',
-    justifyContent: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: rs(10),
+    width: '100%', justifyContent: 'center',
   },
   playerCard: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: hs(8),
-    paddingHorizontal: rs(8),
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.06)',
-    backgroundColor: 'rgba(10,20,60,0.6)',
-    position: 'relative',
+    flex: 1, alignItems: 'center',
+    paddingVertical: hs(8), paddingHorizontal: rs(8),
+    borderRadius: 14, borderWidth: 1.5, borderColor: c.border,
+    backgroundColor: c.surface, position: 'relative',
   },
-  p1Card: { borderColor: COLORS.cyanDim },
-  p2Card: { borderColor: COLORS.orangeDim },
-  activeCard: {
-    borderColor: COLORS.cyan,
-    backgroundColor: COLORS.cyanGlow,
-    shadowColor: COLORS.cyan,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
+  p1Card: { borderColor: c.cyanDim },
+  p2Card: { borderColor: c.orangeDim },
+  activeCardO: {
+    borderColor: c.cyan, backgroundColor: c.cyanGlow,
+    shadowColor: c.cyan, shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: c.glowIntensity * 0.5, shadowRadius: 10, elevation: 8,
   },
   activeCardX: {
-    borderColor: COLORS.orange,
-    backgroundColor: COLORS.orangeGlow,
-    shadowColor: COLORS.orange,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
+    borderColor: c.orange, backgroundColor: c.orangeGlow,
+    shadowColor: c.orange, shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: c.glowIntensity * 0.5, shadowRadius: 10, elevation: 8,
   },
   myCard: { borderWidth: 2 },
   symbolBadgeO: {
-    width: rs(28),
-    height: rs(28),
-    borderRadius: rs(14),
-    borderWidth: 2,
-    borderColor: COLORS.cyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
+    width: rs(28), height: rs(28), borderRadius: rs(14), borderWidth: 2,
+    borderColor: c.cyan, alignItems: 'center', justifyContent: 'center', marginBottom: 2,
   },
   symbolBadgeX: {
-    width: rs(28),
-    height: rs(28),
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: COLORS.orange,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
+    width: rs(28), height: rs(28), borderRadius: 7, borderWidth: 2,
+    borderColor: c.orange, alignItems: 'center', justifyContent: 'center', marginBottom: 2,
   },
-  symbolTextO: { fontSize: rs(14), color: COLORS.cyan, fontWeight: '300', lineHeight: rs(18) },
-  symbolTextX: { fontSize: rs(13), color: COLORS.orange, fontWeight: '700' },
+  symbolTextO: { fontSize: rs(14), color: c.cyan, fontWeight: '300', lineHeight: rs(18) },
+  symbolTextX: { fontSize: rs(13), color: c.orange, fontWeight: '700' },
   playerLabel: {
-    fontSize: rs(9),
-    fontWeight: '800',
-    letterSpacing: 2,
-    color: COLORS.gray,
-    marginBottom: 2,
+    fontSize: rs(9), fontWeight: '800', letterSpacing: 1.5,
+    color: c.gray, marginBottom: 2, maxWidth: '90%',
   },
-  scoreText: {
-    fontSize: rs(30),
-    fontWeight: '900',
-    fontFamily: 'Courier New',
-  },
-  scoreO: { color: COLORS.cyan },
-  scoreX: { color: COLORS.orange },
-  turnIndicatorO: {
-    position: 'absolute',
-    bottom: 4,
-    width: rs(18),
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: COLORS.cyan,
-  },
-  turnIndicatorX: {
-    position: 'absolute',
-    bottom: 4,
-    width: rs(18),
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: COLORS.orange,
-  },
-  dividerContainer: { alignItems: 'center', width: rs(32) },
-  vsText: { fontSize: rs(10), fontWeight: '900', color: COLORS.gray, letterSpacing: 1 },
-  tieText: { fontSize: rs(16), color: COLORS.gold, marginTop: 2 },
-  leadText: { fontSize: rs(12), color: COLORS.cyan, marginTop: 2 },
-  leadTextR: { fontSize: rs(12), color: COLORS.orange, marginTop: 2 },
+  scoreText: { fontSize: rs(30), fontWeight: '900', fontFamily: 'Courier New' },
+  turnBar: { position: 'absolute', bottom: 4, width: rs(18), height: 3, borderRadius: 2 },
+  divider: { alignItems: 'center', width: rs(32) },
+  vsText: { fontSize: rs(10), fontWeight: '900', color: c.gray, letterSpacing: 1 },
+  leadIcon: { fontSize: rs(12), marginTop: 2 },
   dotsRow: { flexDirection: 'row', gap: 8, marginTop: hs(8) },
   dot: {
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: c.border, borderWidth: 1, borderColor: c.borderBright,
   },
-  dotDone: { backgroundColor: COLORS.gold, borderColor: COLORS.gold },
+  dotDone: { backgroundColor: c.gold, borderColor: c.gold },
   dotCurrent: {
-    backgroundColor: COLORS.cyan, borderColor: COLORS.cyan,
-    shadowColor: COLORS.cyan,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8, shadowRadius: 4, elevation: 4,
+    backgroundColor: c.cyan, borderColor: c.cyan,
+    shadowColor: c.cyan, shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: c.glowIntensity * 0.9, shadowRadius: 4, elevation: 4,
   },
 });
