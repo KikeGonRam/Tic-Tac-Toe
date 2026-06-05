@@ -1,0 +1,64 @@
+name: React to App Store Connect events
+
+on:
+  app_store_connect:
+    app_version:
+      states:
+        - waiting_for_review
+        - in_review
+        - ready_for_review
+        - accepted
+        - rejected
+        - invalid_binary
+        - metadata_rejected
+        - ready_for_distribution
+
+jobs:
+  notify_waiting:
+    type: slack
+    if: ${{ event.app_version.state == 'waiting_for_review' }}
+    params:
+      webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+      message: '⏳ TicTacToe X v${{ event.app_version.version }} — enviada, en cola de revisión de Apple.'
+
+  notify_in_review:
+    type: slack
+    if: ${{ event.app_version.state == 'in_review' }}
+    params:
+      webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+      message: '🔍 TicTacToe X v${{ event.app_version.version }} — Apple está revisando la app ahora.'
+
+  notify_accepted:
+    type: slack
+    if: ${{ event.app_version.state == 'accepted' }}
+    params:
+      webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+      message: 'TicTacToe X v${{ event.app_version.version }} — APROBADA por Apple. Lista para publicar.'
+
+  notify_rejected:
+    type: slack
+    if: ${{ event.app_version.state == 'rejected' }}
+    params:
+      webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+      message: 'TicTacToe X v${{ event.app_version.version }} — RECHAZADA por Apple. Revisar motivo en App Store Connect.'
+
+  notify_invalid_binary:
+    type: slack
+    if: ${{ event.app_version.state == 'invalid_binary' }}
+    params:
+      webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+      message: 'TicTacToe X v${{ event.app_version.version }} — binario inválido. Regenerar y reenviar el build.'
+
+  notify_metadata_rejected:
+    type: slack
+    if: ${{ event.app_version.state == 'metadata_rejected' }}
+    params:
+      webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+      message: 'TicTacToe X v${{ event.app_version.version }} — metadatos rechazados. Revisar descripción, capturas o keywords.'
+
+  notify_live:
+    type: slack
+    if: ${{ event.app_version.state == 'ready_for_distribution' }}
+    params:
+      webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+      message: 'TicTacToe X v${{ event.app_version.version }} — PUBLICADA y disponible en el App Store.'

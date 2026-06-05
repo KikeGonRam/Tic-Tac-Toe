@@ -1,0 +1,20 @@
+name: Create Preview Build (Testing)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_preview_android:
+    type: build
+    params:
+      platform: android
+      profile: preview
+
+  notify_preview:
+    type: slack
+    needs: [build_preview_android]
+    params:
+      webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+      message: 'TicTacToe X — Preview APK listo para instalar y probar en Android.'

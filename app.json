@@ -17,7 +17,11 @@
         "backgroundColor": "#050A1E"
       },
       "package": "com.kikegonram.tictactoe",
-      "permissions": ["android.permission.INTERNET"]
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -44,6 +48,7 @@
       "eas": {
         "projectId": "3b31879e-60b1-44aa-be71-c69ecbc21d11"
       }
-    }
+    },
+    "owner": "kikegon"
   }
 }

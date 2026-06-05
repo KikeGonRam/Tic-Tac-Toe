@@ -1,0 +1,42 @@
+name: Create Production Builds
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build_android:
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  build_ios:
+    type: build
+    params:
+      platform: ios
+      profile: production
+
+  submit_android:
+    type: submit
+    needs: [build_android]
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      profile: production
+
+  submit_ios:
+    type: submit
+    needs: [build_ios]
+    params:
+      build_id: ${{ needs.build_ios.outputs.build_id }}
+      profile: production
+
+  notify_done:
+    type: slack
+    needs: [submit_android, submit_ios]
+    params:
+      webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+      message: 'TicTacToe X — builds de producción enviados a las stores.'

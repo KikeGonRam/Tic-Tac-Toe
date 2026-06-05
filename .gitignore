@@ -11,8 +11,9 @@ node_modules/
 dist/
 web-build/
 
-# EAS
-.eas/
+# EAS — ignorar cache local pero trackear workflows
+.eas/*
+!.eas/workflows
 
 # Native builds
 android/
