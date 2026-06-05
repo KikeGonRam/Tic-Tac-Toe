@@ -3,6 +3,7 @@ import { ref, set, onValue, off, get } from 'firebase/database';
 import { db } from '../utils/firebase';
 import {
   GameState,
+  GamePhase,
   Board,
   CellValue,
   checkWinner,
@@ -159,7 +160,7 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
     const full = isBoardFull(newBoard);
 
     let roundWinner: 'player1' | 'player2' | 'draw' | null = null;
-    let newPhase = gs.phase;
+    let newPhase: GamePhase = gs.phase;
     let newScores = { ...gs.scores };
     let gameWinner: 'player1' | 'player2' | null = gs.gameWinner ?? null;
 

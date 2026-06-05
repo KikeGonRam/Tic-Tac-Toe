@@ -24,7 +24,7 @@ function LayoutInner() {
   return (
     <View style={{ flex: 1, backgroundColor: isWide ? '#000' : colors.bg, alignItems: isWide ? 'center' : undefined }}>
       <View style={{ flex: 1, width: isWide ? MAX_WEB_WIDTH : '100%', backgroundColor: colors.bg }}>
-        <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.bg} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <Stack
           screenOptions={{
             headerShown: false,

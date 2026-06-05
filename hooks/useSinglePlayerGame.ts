@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
-  GameState, Board, checkWinner, isBoardFull,
+  GameState, GamePhase, Board, checkWinner, isBoardFull,
   calculateGameWinner, getInitialGameState, INITIAL_BOARD, getAIMove,
 } from '../utils/gameLogic';
 
@@ -35,7 +35,7 @@ export function useSinglePlayerGame(difficulty: Difficulty) {
         const { winner, combo } = checkWinner(newBoard);
         const full = isBoardFull(newBoard);
         let roundWinner: 'player1' | 'player2' | 'draw' | null = null;
-        let newPhase = prev.phase;
+        let newPhase: GamePhase = prev.phase;
         let newScores = { ...prev.scores };
         let gameWinner: 'player1' | 'player2' | null = null;
 
@@ -89,7 +89,7 @@ export function useSinglePlayerGame(difficulty: Difficulty) {
       const { winner, combo } = checkWinner(newBoard);
       const full = isBoardFull(newBoard);
       let roundWinner: 'player1' | 'player2' | 'draw' | null = null;
-      let newPhase = prev.phase;
+      let newPhase: GamePhase = prev.phase;
       let newScores = { ...prev.scores };
       let gameWinner: 'player1' | 'player2' | null = null;
 

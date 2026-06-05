@@ -62,7 +62,7 @@ export default function Confetti({ active }: { active: boolean }) {
   if (!active) return null;
 
   return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {particles.map((p, i) => {
         const spin = p.aRot.interpolate({ inputRange: [0, 10], outputRange: ['0deg', '900deg'] });
         return (

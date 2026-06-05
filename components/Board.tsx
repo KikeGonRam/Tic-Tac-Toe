@@ -144,7 +144,7 @@ export default function Board({
 
 const makeStyles = (c: ThemeColors) => StyleSheet.create({
   container: { alignSelf: 'center', position: 'relative' },
-  grid: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+  grid: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
   vLine: {
     position: 'absolute', top: '8%', bottom: '8%', width: 1.5,
     backgroundColor: c.cyanDim,
