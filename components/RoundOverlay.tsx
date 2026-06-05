@@ -23,12 +23,11 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export default function RoundOverlay({ gameState, myRole, onNextRound, onReset, onLeave, canAdvance }: RoundOverlayProps) {
   const { colors } = useTheme();
-  const { width, height } = useWindowDimensions();
-  const s = useMemo(() => makeStyles(colors), [colors, width, height]);
+  const { width } = useWindowDimensions();
+  const s = useMemo(() => makeStyles(colors), [colors, width]);
 
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
 
   const isGameOver = gameState.phase === 'game_over';
   const winner = isGameOver ? gameState.gameWinner : gameState.roundWinner;
@@ -41,15 +40,6 @@ export default function RoundOverlay({ gameState, myRole, onNextRound, onReset, 
       Animated.spring(scaleAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: nativeDriver }),
       Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: nativeDriver }),
     ]).start();
-
-    if (!isDraw) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 1, duration: 900, useNativeDriver: nativeDriver }),
-          Animated.timing(glowAnim, { toValue: 0, duration: 900, useNativeDriver: nativeDriver }),
-        ])
-      ).start();
-    }
   }, []);
 
   const getTitle = () => {

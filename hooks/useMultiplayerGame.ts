@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ref, set, onValue, off, get } from 'firebase/database';
 import { db } from '../utils/firebase';
+
+const getRoomRef = (code: string) => ref(db, `rooms/${code}`);
 import {
   GameState,
   GamePhase,
@@ -56,8 +58,6 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
   const gameStateRef = useRef<GameState | null>(null);
   const myRoleRef = useRef<PlayerRole>(null);
   const roomCodeRef = useRef('');
-
-  const getRoomRef = (code: string) => ref(db, `rooms/${code}`);
 
   const createRoom = useCallback(async () => {
     try {
@@ -162,7 +162,7 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
     let roundWinner: 'player1' | 'player2' | 'draw' | null = null;
     let newPhase: GamePhase = gs.phase;
     let newScores = { ...gs.scores };
-    let gameWinner: 'player1' | 'player2' | null = gs.gameWinner ?? null;
+    let gameWinner: 'player1' | 'player2' | null = null;
 
     if (winner) {
       roundWinner = role;
