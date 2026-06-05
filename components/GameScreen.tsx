@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet,
-  SafeAreaView, StatusBar, Animated,
+  StatusBar, Animated, useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { rs, hs, ThemeColors } from '../utils/theme';
+import { rs, hs, ThemeColors, nativeDriver } from '../utils/theme';
 import { useTheme } from '../utils/ThemeContext';
 import ScaleBtn from './ScaleBtn';
 import { GameState } from '../utils/gameLogic';
@@ -35,21 +36,25 @@ export default function GameScreen({
   isAIThinking, musicButton, playerName,
 }: GameScreenProps) {
   const { colors, isDark } = useTheme();
-  const s = useMemo(() => makeStyles(colors), [colors]);
+  const { width, height } = useWindowDimensions();
+  const s = useMemo(() => makeStyles(colors), [colors, width, height]);
 
   const isSolo = roomCode === null;
   const isOverlay = gameState.phase === 'round_over' || gameState.phase === 'game_over';
   const mySymbol = myRole === 'player1' ? '○' : '✕';
   const myColor = myRole === 'player1' ? colors.cyan : colors.orange;
+  const myBgGlow = myRole === 'player1' ? colors.cyanGlow : colors.orangeGlow;
 
+  const isActiveMyTurn = isMyTurn && !isAIThinking;
   const turnText = isAIThinking
     ? 'IA PENSANDO...'
     : isMyTurn ? 'TU TURNO' : 'TURNO DEL RIVAL';
-  const turnColor = isAIThinking ? colors.gold : isMyTurn ? myColor : colors.gray;
+  const turnColor = isAIThinking ? colors.gold : isActiveMyTurn ? myColor : colors.grayMuted;
 
   const { timeLeft, fraction, isUrgent } = useTurnTimer(isMyTurn, gameState.phase);
   const sounds = useSoundEffects();
 
+  // Timer bar animation
   const timerAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     Animated.timing(timerAnim, {
@@ -59,6 +64,26 @@ export default function GameScreen({
     }).start();
   }, [fraction]);
 
+  // Pulse animation for active turn
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
+  useEffect(() => {
+    if (pulseLoop.current) pulseLoop.current.stop();
+    if (isActiveMyTurn && gameState.phase === 'playing') {
+      pulseLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 0.55, duration: 700, useNativeDriver: nativeDriver }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: nativeDriver }),
+        ])
+      );
+      pulseLoop.current.start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+    return () => { pulseLoop.current?.stop(); };
+  }, [isActiveMyTurn, gameState.phase]);
+
+  // Sound on phase change
   const prevPhase = useRef(gameState.phase);
   useEffect(() => {
     if (
@@ -73,7 +98,7 @@ export default function GameScreen({
     prevPhase.current = gameState.phase;
   }, [gameState.phase]);
 
-  const timerColor = isUrgent ? colors.error : isMyTurn ? myColor : colors.border;
+  const timerColor = isUrgent ? colors.error : myColor;
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: colors.bg }]}>
@@ -118,18 +143,30 @@ export default function GameScreen({
 
       {/* Turn indicator */}
       <View style={s.turnSection}>
-        <View style={s.turnRow}>
-          <View style={[s.turnDot, {
-            backgroundColor: (isMyTurn && !isAIThinking) ? myColor : 'transparent',
-            borderColor: myColor,
+        <Animated.View
+          style={[
+            s.turnPill,
+            isActiveMyTurn
+              ? { backgroundColor: myBgGlow, borderColor: myColor }
+              : { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Animated.View style={[s.turnDotLarge, {
+            backgroundColor: isActiveMyTurn ? myColor : colors.grayMuted,
+            opacity: isActiveMyTurn ? pulseAnim : 0.4,
+            shadowColor: myColor,
+            shadowOpacity: isActiveMyTurn ? 0.8 : 0,
+            shadowRadius: 6,
           }]} />
+          <Ionicons
+            name={isAIThinking ? 'sync-outline' : isActiveMyTurn ? 'person-outline' : 'hourglass-outline'}
+            size={rs(15)}
+            color={turnColor}
+          />
           <Text style={[s.turnText, { color: turnColor }]}>{turnText}</Text>
-          <View style={[s.turnDot, {
-            backgroundColor: (isMyTurn && !isAIThinking) ? myColor : 'transparent',
-            borderColor: myColor,
-          }]} />
-        </View>
+        </Animated.View>
 
+        {/* Timer — shows during your turn with countdown */}
         {gameState.phase === 'playing' && isMyTurn && !isAIThinking && (
           <View style={s.timerRow}>
             <View style={s.timerTrack}>
@@ -141,11 +178,26 @@ export default function GameScreen({
                       inputRange: [0, 1], outputRange: ['0%', '100%'],
                     }),
                     backgroundColor: timerColor,
+                    shadowColor: timerColor,
+                    shadowOpacity: isUrgent ? 0.7 : 0,
+                    shadowRadius: 4,
                   },
                 ]}
               />
             </View>
-            {isUrgent && <Text style={s.timerNum}>{timeLeft}</Text>}
+            <Text style={[s.timerNum, { color: isUrgent ? colors.error : colors.gray }]}>
+              {timeLeft}s
+            </Text>
+          </View>
+        )}
+
+        {/* Opponent timer placeholder — shows opponent is also on a clock */}
+        {gameState.phase === 'playing' && !isMyTurn && !isSolo && (
+          <View style={s.timerRow}>
+            <View style={[s.timerTrack, { opacity: 0.3 }]}>
+              <View style={[s.timerFill, { width: '100%', backgroundColor: colors.grayMuted }]} />
+            </View>
+            <Text style={[s.timerNum, { color: colors.grayMuted }]}>···</Text>
           </View>
         )}
       </View>
@@ -223,27 +275,36 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   mySymbolText: { fontSize: rs(16), fontWeight: '700', lineHeight: rs(20) },
   turnSection: {
     alignItems: 'center',
-    paddingVertical: hs(8),
     paddingHorizontal: rs(20),
+    paddingTop: hs(6),
+    paddingBottom: hs(4),
+    gap: hs(6),
   },
-  turnRow: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 8,
+  turnPill: {
+    flexDirection: 'row', alignItems: 'center', gap: rs(8),
+    paddingHorizontal: rs(20), paddingVertical: rs(9),
+    borderRadius: 30, borderWidth: 1.5,
   },
-  turnDot: { width: 6, height: 6, borderRadius: 3, borderWidth: 1.5 },
-  turnText: { fontSize: rs(10), fontWeight: '800', letterSpacing: 3 },
+  turnDotLarge: {
+    width: 9, height: 9, borderRadius: 4.5,
+    shadowOffset: { width: 0, height: 0 }, elevation: 4,
+  },
+  turnText: { fontSize: rs(13), fontWeight: '900', letterSpacing: 2 },
   timerRow: {
     flexDirection: 'row', alignItems: 'center',
-    width: '100%', marginTop: hs(5), gap: rs(8),
+    width: '100%', gap: rs(8),
   },
   timerTrack: {
-    flex: 1, height: 4, borderRadius: 2,
+    flex: 1, height: 5, borderRadius: 3,
     backgroundColor: c.border, overflow: 'hidden',
   },
-  timerFill: { height: '100%', borderRadius: 2 },
+  timerFill: {
+    height: '100%', borderRadius: 3,
+    shadowOffset: { width: 0, height: 0 }, elevation: 3,
+  },
   timerNum: {
-    fontSize: rs(10), fontWeight: '900', color: c.error,
-    fontFamily: 'Courier New', minWidth: rs(18), textAlign: 'right',
+    fontSize: rs(11), fontWeight: '900',
+    fontFamily: 'Courier New', minWidth: rs(24), textAlign: 'right',
   },
   boardWrapper: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
@@ -251,7 +312,7 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   },
   bottomDecor: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 40, paddingBottom: hs(12), justifyContent: 'center',
+    paddingHorizontal: rs(40), paddingBottom: hs(12), justifyContent: 'center',
   },
   decorLine: { flex: 1, height: 1.5, opacity: 0.4 },
   decorDot: {

@@ -1,4 +1,3 @@
-// hooks/useMultiplayerGame.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ref, set, onValue, off, get } from 'firebase/database';
 import { db } from '../utils/firebase';
@@ -20,7 +19,6 @@ function normalizeBoard(raw: any): Board {
   const board: Board = Array(9).fill(null);
   if (!raw) return board;
   if (Array.isArray(raw)) return raw.length === 9 ? raw : board;
-  // Firebase stores sparse arrays as objects with integer keys e.g. {"4": "O"}
   Object.entries(raw).forEach(([key, value]) => {
     const idx = parseInt(key);
     if (idx >= 0 && idx < 9) board[idx] = value as CellValue;
@@ -53,12 +51,21 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
   const [winningCombo, setWinningCombo] = useState<number[] | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
 
+  // Refs updated SYNCHRONOUSLY — never stale, no useEffect needed
+  const gameStateRef = useRef<GameState | null>(null);
+  const myRoleRef = useRef<PlayerRole>(null);
+  const roomCodeRef = useRef('');
+
   const getRoomRef = (code: string) => ref(db, `rooms/${code}`);
 
   const createRoom = useCallback(async () => {
     try {
       setError(null);
       const code = generateRoomCode();
+      // Update refs synchronously before async Firebase call
+      roomCodeRef.current = code;
+      myRoleRef.current = 'player1';
+
       const roomRef = getRoomRef(code);
       const initialState: GameState = {
         ...getInitialGameState(),
@@ -77,8 +84,10 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
   const joinRoom = useCallback(async (code: string) => {
     try {
       setError(null);
-      const roomRef = getRoomRef(code.toUpperCase());
+      const upperCode = code.toUpperCase();
+      const roomRef = getRoomRef(upperCode);
       const snapshot = await get(roomRef);
+
       if (!snapshot.exists()) {
         setError('Sala no encontrada. Verifica el código.');
         return;
@@ -88,15 +97,20 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
         setError('La sala ya está llena.');
         return;
       }
+
       const updated: GameState = {
         ...state,
         phase: 'playing',
-        players: { ...state.players, player2: code.toUpperCase() + '_p2' },
+        players: { ...state.players, player2: upperCode + '_p2' },
       };
       await set(roomRef, updated);
-      setRoomCode(code.toUpperCase());
+
+      // Update refs synchronously after confirming join
+      roomCodeRef.current = upperCode;
+      myRoleRef.current = 'player2';
+      setRoomCode(upperCode);
       setMyRole('player2');
-      subscribeToRoom(code.toUpperCase());
+      subscribeToRoom(upperCode);
     } catch (e) {
       setError('Error al unirse. Verifica tu conexión y el código.');
     }
@@ -113,6 +127,10 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
           ...raw,
           board: normalizeBoard(raw.board),
         };
+        // CRITICAL: update ref synchronously BEFORE setState
+        // This ensures makeMove always reads the latest state,
+        // even if the user clicks before React re-renders.
+        gameStateRef.current = state;
         setGameState(state);
         setIsConnected(true);
         const { combo } = checkWinner(state.board);
@@ -124,43 +142,45 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
   }, []);
 
   const makeMove = useCallback(async (index: number) => {
-    if (!gameState || !roomCode || !myRole) return;
-    if (gameState.phase !== 'playing') return;
-    if (gameState.currentTurn !== myRole) return;
-    if (gameState.board[index] !== null) return;
+    const gs = gameStateRef.current;
+    const role = myRoleRef.current;
+    const code = roomCodeRef.current;
 
-    const symbol: CellValue = myRole === 'player1' ? 'O' : 'X';
-    const newBoard: Board = [...gameState.board];
+    if (!gs || !code || !role) return;
+    if (gs.phase !== 'playing') return;
+    if (gs.currentTurn !== role) return;
+    if (gs.board[index] !== null) return;
+
+    const symbol: CellValue = role === 'player1' ? 'O' : 'X';
+    const newBoard: Board = [...gs.board];
     newBoard[index] = symbol;
 
-    const { winner, combo } = checkWinner(newBoard);
+    const { winner } = checkWinner(newBoard);
     const full = isBoardFull(newBoard);
 
     let roundWinner: 'player1' | 'player2' | 'draw' | null = null;
-    let newPhase = gameState.phase;
-    let newScores = { ...gameState.scores };
-    let gameWinner: 'player1' | 'player2' | null = null;
+    let newPhase = gs.phase;
+    let newScores = { ...gs.scores };
+    let gameWinner: 'player1' | 'player2' | null = gs.gameWinner ?? null;
 
     if (winner) {
-      roundWinner = myRole;
-      if (myRole === 'player1') newScores.player1++;
+      roundWinner = role;
+      if (role === 'player1') newScores.player1++;
       else newScores.player2++;
 
-      // Check if 3 wins reached
       if (newScores.player1 >= 3 || newScores.player2 >= 3) {
         gameWinner = newScores.player1 >= 3 ? 'player1' : 'player2';
         newPhase = 'game_over';
-      } else if (gameState.round >= 5) {
-        // Last round, determine winner
-        gameWinner = calculateGameWinner(gameState.scores, gameState.round, roundWinner);
+      } else if (gs.round >= 5) {
+        gameWinner = calculateGameWinner(newScores, gs.round, roundWinner);
         newPhase = 'game_over';
       } else {
         newPhase = 'round_over';
       }
     } else if (full) {
       roundWinner = 'draw';
-      if (gameState.round >= 5) {
-        gameWinner = calculateGameWinner(gameState.scores, gameState.round, 'draw');
+      if (gs.round >= 5) {
+        gameWinner = calculateGameWinner(newScores, gs.round, 'draw');
         newPhase = 'game_over';
       } else {
         newPhase = 'round_over';
@@ -168,44 +188,57 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
     }
 
     const updatedState: GameState = {
-      ...gameState,
+      ...gs,
       board: newBoard,
-      currentTurn: myRole === 'player1' ? 'player2' : 'player1',
+      currentTurn: role === 'player1' ? 'player2' : 'player1',
       scores: newScores,
       phase: newPhase,
       roundWinner,
       gameWinner,
     };
 
-    await set(getRoomRef(roomCode), updatedState);
-  }, [gameState, roomCode, myRole]);
+    // Optimistically update the ref so rapid clicks are blocked immediately
+    gameStateRef.current = updatedState;
+    await set(getRoomRef(code), updatedState);
+  }, []);
 
   const nextRound = useCallback(async () => {
-    if (!gameState || !roomCode) return;
+    const gs = gameStateRef.current;
+    const code = roomCodeRef.current;
+    if (!gs || !code) return;
+
     const updatedState: GameState = {
-      ...gameState,
+      ...gs,
       board: [...INITIAL_BOARD],
       currentTurn: 'player1',
-      round: gameState.round + 1,
+      round: gs.round + 1,
       phase: 'playing',
       roundWinner: null,
+      gameWinner: null,
     };
-    await set(getRoomRef(roomCode), updatedState);
-  }, [gameState, roomCode]);
+    gameStateRef.current = updatedState;
+    setWinningCombo(null);
+    await set(getRoomRef(code), updatedState);
+  }, []);
 
   const resetGame = useCallback(async () => {
-    if (!roomCode) return;
+    const gs = gameStateRef.current;
+    const code = roomCodeRef.current;
+    if (!code) return;
+
     const fresh: GameState = {
       ...getInitialGameState(),
       phase: 'playing',
-      players: gameState?.players || { player1: null, player2: null },
+      players: gs?.players || { player1: null, player2: null },
     };
-    await set(getRoomRef(roomCode), fresh);
+    gameStateRef.current = fresh;
     setWinningCombo(null);
-  }, [gameState, roomCode]);
+    await set(getRoomRef(code), fresh);
+  }, []);
 
   const leaveRoom = useCallback(() => {
     if (unsubRef.current) unsubRef.current();
+    gameStateRef.current = null;
     setGameState(null);
     setMyRole(null);
     setRoomCode('');
@@ -214,9 +247,7 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (unsubRef.current) unsubRef.current();
-    };
+    return () => { if (unsubRef.current) unsubRef.current(); };
   }, []);
 
   const isMyTurn = myRole !== null && gameState?.currentTurn === myRole && gameState?.phase === 'playing';

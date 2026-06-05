@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
-import { Animated, TouchableWithoutFeedback } from 'react-native';
+import { Animated, Pressable } from 'react-native';
+import { nativeDriver } from '../utils/theme';
 
 interface Props {
   onPress?: () => void;
@@ -14,26 +15,27 @@ export default function ScaleBtn({ onPress, style, disabled = false, children }:
 
   const pressIn = () =>
     Animated.parallel([
-      Animated.spring(scale, { toValue: 0.95, speed: 80, bounciness: 0, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 0.85, duration: 80, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 0.95, speed: 80, bounciness: 0, useNativeDriver: nativeDriver }),
+      Animated.timing(opacity, { toValue: 0.85, duration: 80, useNativeDriver: nativeDriver }),
     ]).start();
 
   const pressOut = () =>
     Animated.parallel([
-      Animated.spring(scale, { toValue: 1, speed: 60, bounciness: 6, useNativeDriver: true }),
-      Animated.timing(opacity, { toValue: 1, duration: 120, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, speed: 60, bounciness: 6, useNativeDriver: nativeDriver }),
+      Animated.timing(opacity, { toValue: 1, duration: 120, useNativeDriver: nativeDriver }),
     ]).start();
 
   return (
-    <TouchableWithoutFeedback
+    <Pressable
+      onPress={onPress}
       onPressIn={pressIn}
       onPressOut={pressOut}
-      onPress={onPress}
       disabled={disabled}
+      android_ripple={null}
     >
       <Animated.View style={[style, { transform: [{ scale }], opacity }]}>
         {children}
       </Animated.View>
-    </TouchableWithoutFeedback>
+    </Pressable>
   );
 }

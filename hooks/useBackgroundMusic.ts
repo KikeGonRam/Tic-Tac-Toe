@@ -19,9 +19,10 @@ export function useBackgroundMusic() {
           shouldDuckAndroid: false,
         });
 
+        // Create the sound without autoplay first
         const { sound } = await Audio.Sound.createAsync(
           MUSIC_ASSET,
-          { isLooping: true, volume: 0.6, shouldPlay: true }
+          { isLooping: true, volume: 0.6, shouldPlay: false }
         );
 
         if (!mounted) {
@@ -31,9 +32,16 @@ export function useBackgroundMusic() {
 
         soundRef.current = sound;
         setAvailable(true);
-        setIsPlaying(true);
-      } catch (e) {
-        console.warn('[Music] Failed to load:', e);
+
+        // Try autoplay — may be blocked by browser on web (expected, silent)
+        try {
+          await sound.playAsync();
+          setIsPlaying(true);
+        } catch {
+          // Browser autoplay blocked until user interaction — button still shows
+        }
+      } catch {
+        // Sound file unavailable
       }
     }
 
@@ -57,9 +65,7 @@ export function useBackgroundMusic() {
         await soundRef.current.playAsync();
         setIsPlaying(true);
       }
-    } catch (e) {
-      console.warn('[Music] Toggle error:', e);
-    }
+    } catch {}
   }, []);
 
   return { isPlaying, available, toggle };

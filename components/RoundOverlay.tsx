@@ -4,7 +4,7 @@ import {
   Modal, useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { rs, hs, ThemeColors } from '../utils/theme';
+import { rs, hs, ThemeColors, nativeDriver } from '../utils/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { GameState } from '../utils/gameLogic';
 import Confetti from './Confetti';
@@ -23,8 +23,8 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export default function RoundOverlay({ gameState, myRole, onNextRound, onReset, onLeave, canAdvance }: RoundOverlayProps) {
   const { colors } = useTheme();
-  const s = useMemo(() => makeStyles(colors), [colors]);
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const s = useMemo(() => makeStyles(colors), [colors, width, height]);
 
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -38,15 +38,15 @@ export default function RoundOverlay({ gameState, myRole, onNextRound, onReset, 
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scaleAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
-      Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: nativeDriver }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: nativeDriver }),
     ]).start();
 
     if (!isDraw) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 0, duration: 900, useNativeDriver: true }),
+          Animated.timing(glowAnim, { toValue: 1, duration: 900, useNativeDriver: nativeDriver }),
+          Animated.timing(glowAnim, { toValue: 0, duration: 900, useNativeDriver: nativeDriver }),
         ])
       ).start();
     }

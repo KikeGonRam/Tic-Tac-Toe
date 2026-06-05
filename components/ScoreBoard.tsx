@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { rs, hs, ThemeColors } from '../utils/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { GameState } from '../utils/gameLogic';
@@ -13,7 +13,8 @@ interface ScoreBoardProps {
 
 export default function ScoreBoard({ gameState, myRole, playerName, opponentName }: ScoreBoardProps) {
   const { colors } = useTheme();
-  const s = useMemo(() => makeStyles(colors), [colors]);
+  const { width, height } = useWindowDimensions();
+  const s = useMemo(() => makeStyles(colors), [colors, width, height]);
   const { scores, round, currentTurn, phase } = gameState;
   const isP1Leading = scores.player1 > scores.player2;
   const isP2Leading = scores.player2 > scores.player1;

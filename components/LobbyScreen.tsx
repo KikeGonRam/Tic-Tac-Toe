@@ -1,10 +1,11 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TextInput, Animated,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { rs, hs, ThemeColors } from '../utils/theme';
+import { rs, hs, ThemeColors, nativeDriver } from '../utils/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { Difficulty } from '../hooks/useSinglePlayerGame';
 import ScaleBtn from './ScaleBtn';
@@ -27,7 +28,8 @@ type Screen = 'home' | 'multi' | 'join' | 'solo';
 
 function SubHeader({ title, onBack }: { title: string; onBack: () => void }) {
   const { colors } = useTheme();
-  const s = useMemo(() => makeSubHeaderStyles(colors), [colors]);
+  const { width, height } = useWindowDimensions();
+  const s = useMemo(() => makeSubHeaderStyles(colors), [colors, width, height]);
   return (
     <View style={s.row}>
       <ScaleBtn onPress={onBack} style={s.backBtn}>
@@ -55,7 +57,8 @@ export default function LobbyScreen({
   musicButton, playerName = '', onNameChange, stats,
 }: LobbyScreenProps) {
   const { colors, isDark, toggle } = useTheme();
-  const s = useMemo(() => makeStyles(colors), [colors]);
+  const { width, height } = useWindowDimensions();
+  const s = useMemo(() => makeStyles(colors), [colors, width, height]);
   const [screen, setScreen] = useState<Screen>('home');
   const [joinCode, setJoinCode] = useState('');
 
@@ -64,14 +67,14 @@ export default function LobbyScreen({
 
   const navigate = useCallback((to: Screen) => {
     Animated.parallel([
-      Animated.timing(anim, { toValue: 0, duration: 110, useNativeDriver: true }),
-      Animated.timing(slide, { toValue: -10, duration: 110, useNativeDriver: true }),
+      Animated.timing(anim, { toValue: 0, duration: 110, useNativeDriver: nativeDriver }),
+      Animated.timing(slide, { toValue: -10, duration: 110, useNativeDriver: nativeDriver }),
     ]).start(() => {
       setScreen(to);
       slide.setValue(14);
       Animated.parallel([
-        Animated.timing(anim, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.spring(slide, { toValue: 0, tension: 120, friction: 14, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 200, useNativeDriver: nativeDriver }),
+        Animated.spring(slide, { toValue: 0, tension: 120, friction: 14, useNativeDriver: nativeDriver }),
       ]).start();
     });
   }, []);
@@ -83,6 +86,7 @@ export default function LobbyScreen({
   const totalGames = (stats?.wins ?? 0) + (stats?.losses ?? 0) + (stats?.draws ?? 0);
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         contentContainerStyle={s.container}
@@ -290,13 +294,14 @@ export default function LobbyScreen({
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const makeStyles = (c: ThemeColors) => StyleSheet.create({
   container: {
     paddingHorizontal: rs(24),
-    paddingTop: hs(44),
+    paddingTop: hs(12),
     paddingBottom: hs(40),
     alignItems: 'center',
     minHeight: '100%',

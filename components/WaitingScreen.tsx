@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { rs, hs, ThemeColors } from '../utils/theme';
+import { rs, hs, ThemeColors, nativeDriver } from '../utils/theme';
 import { useTheme } from '../utils/ThemeContext';
 
 interface WaitingScreenProps {
@@ -10,8 +11,8 @@ interface WaitingScreenProps {
 
 export default function WaitingScreen({ roomCode }: WaitingScreenProps) {
   const { colors } = useTheme();
-  const s = useMemo(() => makeStyles(colors), [colors]);
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const s = useMemo(() => makeStyles(colors), [colors, width, height]);
   const charBoxSize = Math.min(rs(44), (width - 80) / 7);
 
   const dots = [
@@ -28,8 +29,8 @@ export default function WaitingScreen({ roomCode }: WaitingScreenProps) {
       Animated.loop(
         Animated.sequence([
           Animated.delay(i * 220),
-          Animated.timing(anim, { toValue: 1, duration: 380, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0.3, duration: 380, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 1, duration: 380, useNativeDriver: nativeDriver }),
+          Animated.timing(anim, { toValue: 0.3, duration: 380, useNativeDriver: nativeDriver }),
           Animated.delay((dots.length - i - 1) * 220),
         ])
       )
@@ -39,12 +40,12 @@ export default function WaitingScreen({ roomCode }: WaitingScreenProps) {
     const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.parallel([
-          Animated.timing(pulse, { toValue: 1, duration: 1400, useNativeDriver: true }),
-          Animated.timing(ringScale, { toValue: 1.06, duration: 1400, useNativeDriver: true }),
+          Animated.timing(pulse, { toValue: 1, duration: 1400, useNativeDriver: nativeDriver }),
+          Animated.timing(ringScale, { toValue: 1.06, duration: 1400, useNativeDriver: nativeDriver }),
         ]),
         Animated.parallel([
-          Animated.timing(pulse, { toValue: 0, duration: 1400, useNativeDriver: true }),
-          Animated.timing(ringScale, { toValue: 1, duration: 1400, useNativeDriver: true }),
+          Animated.timing(pulse, { toValue: 0, duration: 1400, useNativeDriver: nativeDriver }),
+          Animated.timing(ringScale, { toValue: 1, duration: 1400, useNativeDriver: nativeDriver }),
         ]),
       ])
     );
@@ -59,6 +60,7 @@ export default function WaitingScreen({ roomCode }: WaitingScreenProps) {
   const ringOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.9] });
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
     <View style={s.container}>
       <View style={s.bgGrid}>
         {Array.from({ length: 9 }).map((_, i) => (
@@ -129,6 +131,7 @@ export default function WaitingScreen({ roomCode }: WaitingScreenProps) {
         </View>
       </View>
     </View>
+    </SafeAreaView>
   );
 }
 

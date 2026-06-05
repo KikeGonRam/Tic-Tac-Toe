@@ -3,8 +3,7 @@ import {
   View, TouchableOpacity, StyleSheet, Text,
   useWindowDimensions, Animated,
 } from 'react-native';
-import { rs } from '../utils/theme';
-import { ThemeColors } from '../utils/theme';
+import { rs, ThemeColors, nativeDriver } from '../utils/theme';
 import { useTheme } from '../utils/ThemeContext';
 import { Board as BoardType } from '../utils/gameLogic';
 
@@ -38,7 +37,7 @@ export default function Board({
       if (cell !== null && prevBoard.current[i] === null) {
         scales[i].setValue(0.2);
         Animated.spring(scales[i], {
-          toValue: 1, tension: 280, friction: 9, useNativeDriver: true,
+          toValue: 1, tension: 280, friction: 9, useNativeDriver: nativeDriver,
         }).start();
       }
     });
@@ -48,7 +47,7 @@ export default function Board({
   useEffect(() => {
     lineAnim.setValue(0);
     if (winningCombo) {
-      Animated.timing(lineAnim, { toValue: 1, duration: 420, useNativeDriver: true }).start();
+      Animated.timing(lineAnim, { toValue: 1, duration: 420, useNativeDriver: nativeDriver }).start();
     }
   }, [winningCombo]);
 

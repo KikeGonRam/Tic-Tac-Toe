@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, useWindowDimensions } from 'react-native';
+import { nativeDriver } from '../utils/theme';
 
 const PALETTE = ['#00D4FF', '#FF6B35', '#FFD700', '#00FF88', '#FF4466', '#C084FC', '#FFFFFF'];
 const COUNT = 55;
@@ -46,12 +47,12 @@ export default function Confetti({ active }: { active: boolean }) {
       Animated.sequence([
         Animated.delay(p.delay),
         Animated.parallel([
-          Animated.timing(p.aY, { toValue: height + 40, duration: p.dur, useNativeDriver: true }),
-          Animated.timing(p.aRot, { toValue: 6 + Math.random() * 4, duration: p.dur, useNativeDriver: true }),
+          Animated.timing(p.aY, { toValue: height + 40, duration: p.dur, useNativeDriver: nativeDriver }),
+          Animated.timing(p.aRot, { toValue: 6 + Math.random() * 4, duration: p.dur, useNativeDriver: nativeDriver }),
           Animated.sequence([
-            Animated.timing(p.aOp, { toValue: 1, duration: 120, useNativeDriver: true }),
+            Animated.timing(p.aOp, { toValue: 1, duration: 120, useNativeDriver: nativeDriver }),
             Animated.delay(p.dur - 550),
-            Animated.timing(p.aOp, { toValue: 0, duration: 430, useNativeDriver: true }),
+            Animated.timing(p.aOp, { toValue: 0, duration: 430, useNativeDriver: nativeDriver }),
           ]),
         ]),
       ]).start();

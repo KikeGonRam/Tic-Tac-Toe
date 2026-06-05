@@ -1,12 +1,23 @@
-import { Dimensions } from 'react-native';
+import { Dimensions, Platform } from 'react-native';
 
-const { width: W, height: H } = Dimensions.get('window');
-const BASE_W = 375;
-const BASE_H = 812;
+export const BASE_W = 375;
+export const BASE_H = 812;
 
-export const rs = (n: number) => Math.round((Math.min(W, 430) / BASE_W) * n);
-export const hs = (n: number) => Math.round((Math.min(H, 900) / BASE_H) * n);
-export const SCREEN = { W, H };
+export const rs = (n: number) => {
+  const { width } = Dimensions.get('window');
+  return Math.round((Math.min(width, 430) / BASE_W) * n);
+};
+export const hs = (n: number) => {
+  const { height } = Dimensions.get('window');
+  return Math.round((Math.min(height, 900) / BASE_H) * n);
+};
+export const SCREEN = {
+  get W() { return Dimensions.get('window').width; },
+  get H() { return Dimensions.get('window').height; },
+};
+
+// useNativeDriver must be false on web (native animation module unavailable)
+export const nativeDriver = Platform.OS !== 'web';
 
 export interface ThemeColors {
   // Backgrounds
