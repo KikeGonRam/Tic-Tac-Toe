@@ -9,24 +9,14 @@
     "scheme": "tictactoe",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.kikegonram.tictactoe",
-      "splash": {
-        "image": "./assets/splash.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#050A1E"
-      }
+      "bundleIdentifier": "com.kikegonram.tictactoe"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#050A1E"
       },
-      "package": "com.kikegonram.tictactoe",
-      "splash": {
-        "image": "./assets/splash.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#050A1E"
-      }
+      "package": "com.kikegonram.tictactoe"
     },
     "web": {
       "bundler": "metro",
