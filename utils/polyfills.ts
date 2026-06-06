@@ -3,6 +3,8 @@
 // This file must be imported before any Firebase import.
 import { Platform } from 'react-native';
 
+declare const global: any;
+
 if (Platform.OS !== 'web') {
   const g = global as any;
 

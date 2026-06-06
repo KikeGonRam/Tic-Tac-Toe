@@ -228,7 +228,7 @@ export default function GameScreen({
           onNextRound={onNextRound}
           onReset={onReset}
           onLeave={onLeave}
-          canAdvance={isSolo || myRole === 'player1'}
+          canAdvance={true}
         />
       )}
     </SafeAreaView>

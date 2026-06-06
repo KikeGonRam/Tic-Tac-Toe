@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ref, set, onValue, off, get } from 'firebase/database';
+import { ref, set, onValue, off, get, runTransaction } from 'firebase/database';
 import { db } from '../utils/firebase';
-
-const getRoomRef = (code: string) => ref(db, `rooms/${code}`);
 import {
   GameState,
   GamePhase,
@@ -17,6 +15,8 @@ import {
 } from '../utils/gameLogic';
 
 export type PlayerRole = 'player1' | 'player2' | null;
+
+const getRoomRef = (code: string) => ref(db, `rooms/${code}`);
 
 function normalizeBoard(raw: any): Board {
   const board: Board = Array(9).fill(null);
@@ -54,7 +54,9 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
   const [winningCombo, setWinningCombo] = useState<number[] | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
 
-  // Refs updated SYNCHRONOUSLY — never stale, no useEffect needed
+  // Prevents a second tap from firing while a transaction is in flight.
+  const isProcessingRef = useRef(false);
+
   const gameStateRef = useRef<GameState | null>(null);
   const myRoleRef = useRef<PlayerRole>(null);
   const roomCodeRef = useRef('');
@@ -63,21 +65,19 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
     try {
       setError(null);
       const code = generateRoomCode();
-      // Update refs synchronously before async Firebase call
       roomCodeRef.current = code;
       myRoleRef.current = 'player1';
 
-      const roomRef = getRoomRef(code);
       const initialState: GameState = {
         ...getInitialGameState(),
         phase: 'waiting',
         players: { player1: code + '_p1', player2: null },
       };
-      await set(roomRef, initialState);
+      await set(getRoomRef(code), initialState);
       setRoomCode(code);
       setMyRole('player1');
       subscribeToRoom(code);
-    } catch (e) {
+    } catch {
       setError('Error al crear la sala. Verifica tu conexión.');
     }
   }, []);
@@ -86,8 +86,7 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
     try {
       setError(null);
       const upperCode = code.toUpperCase();
-      const roomRef = getRoomRef(upperCode);
-      const snapshot = await get(roomRef);
+      const snapshot = await get(getRoomRef(upperCode));
 
       if (!snapshot.exists()) {
         setError('Sala no encontrada. Verifica el código.');
@@ -104,33 +103,26 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
         phase: 'playing',
         players: { ...state.players, player2: upperCode + '_p2' },
       };
-      await set(roomRef, updated);
+      await set(getRoomRef(upperCode), updated);
 
-      // Update refs synchronously after confirming join
       roomCodeRef.current = upperCode;
       myRoleRef.current = 'player2';
       setRoomCode(upperCode);
       setMyRole('player2');
       subscribeToRoom(upperCode);
-    } catch (e) {
+    } catch {
       setError('Error al unirse. Verifica tu conexión y el código.');
     }
   }, []);
 
   const subscribeToRoom = useCallback((code: string) => {
-    const roomRef = getRoomRef(code);
     if (unsubRef.current) unsubRef.current();
+    const roomRef = getRoomRef(code);
 
     const listener = onValue(roomRef, (snapshot) => {
       if (snapshot.exists()) {
         const raw = snapshot.val();
-        const state: GameState = {
-          ...raw,
-          board: normalizeBoard(raw.board),
-        };
-        // CRITICAL: update ref synchronously BEFORE setState
-        // This ensures makeMove always reads the latest state,
-        // even if the user clicks before React re-renders.
+        const state: GameState = { ...raw, board: normalizeBoard(raw.board) };
         gameStateRef.current = state;
         setGameState(state);
         setIsConnected(true);
@@ -142,99 +134,117 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
     unsubRef.current = () => off(roomRef, 'value', listener);
   }, []);
 
+  // Uses a Firebase transaction so the move is validated against the LIVE server
+  // state, not a potentially stale local cache. This prevents the race condition
+  // where both players write simultaneously and one overwrites the other.
   const makeMove = useCallback(async (index: number) => {
-    const gs = gameStateRef.current;
+    if (isProcessingRef.current) return;
     const role = myRoleRef.current;
     const code = roomCodeRef.current;
+    if (!code || !role) return;
 
-    if (!gs || !code || !role) return;
-    if (gs.phase !== 'playing') return;
-    if (gs.currentTurn !== role) return;
-    if (gs.board[index] !== null) return;
+    isProcessingRef.current = true;
+    try {
+      await runTransaction(getRoomRef(code), (current: any) => {
+        if (!current) return current;
+        // Abort if state changed since last render (stale local read).
+        if (current.phase !== 'playing') return;
+        if (current.currentTurn !== role) return;
 
-    const symbol: CellValue = role === 'player1' ? 'O' : 'X';
-    const newBoard: Board = [...gs.board];
-    newBoard[index] = symbol;
+        const board = normalizeBoard(current.board);
+        if (board[index] !== null) return; // cell already taken
 
-    const { winner } = checkWinner(newBoard);
-    const full = isBoardFull(newBoard);
+        const symbol: CellValue = role === 'player1' ? 'O' : 'X';
+        const newBoard: Board = [...board];
+        newBoard[index] = symbol;
 
-    let roundWinner: 'player1' | 'player2' | 'draw' | null = null;
-    let newPhase: GamePhase = gs.phase;
-    let newScores = { ...gs.scores };
-    let gameWinner: 'player1' | 'player2' | null = null;
+        const { winner } = checkWinner(newBoard);
+        const full = isBoardFull(newBoard);
 
-    if (winner) {
-      roundWinner = role;
-      if (role === 'player1') newScores.player1++;
-      else newScores.player2++;
+        let roundWinner: 'player1' | 'player2' | 'draw' | null = null;
+        let newPhase: GamePhase = 'playing';
+        let newScores = { ...current.scores };
+        let gameWinner: 'player1' | 'player2' | null = null;
 
-      if (newScores.player1 >= 3 || newScores.player2 >= 3) {
-        gameWinner = newScores.player1 >= 3 ? 'player1' : 'player2';
-        newPhase = 'game_over';
-      } else if (gs.round >= 5) {
-        gameWinner = calculateGameWinner(newScores, gs.round, roundWinner);
-        newPhase = 'game_over';
-      } else {
-        newPhase = 'round_over';
-      }
-    } else if (full) {
-      roundWinner = 'draw';
-      if (gs.round >= 5) {
-        gameWinner = calculateGameWinner(newScores, gs.round, 'draw');
-        newPhase = 'game_over';
-      } else {
-        newPhase = 'round_over';
-      }
+        if (winner) {
+          roundWinner = role;
+          if (role === 'player1') newScores.player1++;
+          else newScores.player2++;
+
+          if (newScores.player1 >= 3 || newScores.player2 >= 3) {
+            gameWinner = newScores.player1 >= 3 ? 'player1' : 'player2';
+            newPhase = 'game_over';
+          } else if (current.round >= 5) {
+            gameWinner = calculateGameWinner(newScores, current.round, roundWinner);
+            newPhase = 'game_over';
+          } else {
+            newPhase = 'round_over';
+          }
+        } else if (full) {
+          roundWinner = 'draw';
+          if (current.round >= 5) {
+            gameWinner = calculateGameWinner(newScores, current.round, 'draw');
+            newPhase = 'game_over';
+          } else {
+            newPhase = 'round_over';
+          }
+        }
+
+        return {
+          ...current,
+          board: newBoard,
+          currentTurn: (role === 'player1' ? 'player2' : 'player1') as 'player1' | 'player2',
+          scores: newScores,
+          phase: newPhase,
+          roundWinner,
+          gameWinner,
+        };
+      });
+    } catch {
+      // Network failure — transaction silently dropped.
+    } finally {
+      isProcessingRef.current = false;
     }
-
-    const updatedState: GameState = {
-      ...gs,
-      board: newBoard,
-      currentTurn: role === 'player1' ? 'player2' : 'player1',
-      scores: newScores,
-      phase: newPhase,
-      roundWinner,
-      gameWinner,
-    };
-
-    // Optimistically update the ref so rapid clicks are blocked immediately
-    gameStateRef.current = updatedState;
-    await set(getRoomRef(code), updatedState);
   }, []);
 
+  // Both players can call nextRound. The transaction ensures only the FIRST
+  // caller advances (phase check aborts any duplicate call).
   const nextRound = useCallback(async () => {
-    const gs = gameStateRef.current;
     const code = roomCodeRef.current;
-    if (!gs || !code) return;
-
-    const updatedState: GameState = {
-      ...gs,
-      board: [...INITIAL_BOARD],
-      currentTurn: 'player1',
-      round: gs.round + 1,
-      phase: 'playing',
-      roundWinner: null,
-      gameWinner: null,
-    };
-    gameStateRef.current = updatedState;
-    setWinningCombo(null);
-    await set(getRoomRef(code), updatedState);
+    if (!code) return;
+    try {
+      await runTransaction(getRoomRef(code), (current: any) => {
+        if (!current) return current;
+        if (current.phase !== 'round_over') return; // already advanced — abort
+        return {
+          ...current,
+          board: [...INITIAL_BOARD],
+          currentTurn: 'player1',
+          round: current.round + 1,
+          phase: 'playing',
+          roundWinner: null,
+          gameWinner: null,
+        };
+      });
+    } catch { /* ignore */ }
   }, []);
 
+  // Same pattern as nextRound — first player to tap "Jugar de nuevo" wins the race.
   const resetGame = useCallback(async () => {
     const gs = gameStateRef.current;
     const code = roomCodeRef.current;
     if (!code) return;
-
-    const fresh: GameState = {
-      ...getInitialGameState(),
-      phase: 'playing',
-      players: gs?.players || { player1: null, player2: null },
-    };
-    gameStateRef.current = fresh;
-    setWinningCombo(null);
-    await set(getRoomRef(code), fresh);
+    try {
+      await runTransaction(getRoomRef(code), (current: any) => {
+        if (!current) return current;
+        if (current.phase !== 'game_over') return; // guard — abort
+        return {
+          ...getInitialGameState(),
+          phase: 'playing',
+          players: current.players ?? gs?.players ?? { player1: null, player2: null },
+        };
+      });
+    } catch { /* ignore */ }
   }, []);
 
   const leaveRoom = useCallback(() => {
@@ -251,21 +261,14 @@ export function useMultiplayerGame(): UseMultiplayerGameReturn {
     return () => { if (unsubRef.current) unsubRef.current(); };
   }, []);
 
-  const isMyTurn = myRole !== null && gameState?.currentTurn === myRole && gameState?.phase === 'playing';
+  const isMyTurn =
+    myRole !== null &&
+    gameState?.currentTurn === myRole &&
+    gameState?.phase === 'playing';
 
   return {
-    gameState,
-    myRole,
-    roomCode,
-    isConnected,
-    error,
-    createRoom,
-    joinRoom,
-    makeMove,
-    nextRound,
-    resetGame,
-    leaveRoom,
-    isMyTurn,
-    winningCombo,
+    gameState, myRole, roomCode, isConnected, error,
+    createRoom, joinRoom, makeMove, nextRound, resetGame,
+    leaveRoom, isMyTurn, winningCombo,
   };
 }
