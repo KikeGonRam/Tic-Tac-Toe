@@ -1,3 +1,4 @@
+import '../utils/polyfills';
 import { Stack } from 'expo-router';
 import { View, Platform, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
